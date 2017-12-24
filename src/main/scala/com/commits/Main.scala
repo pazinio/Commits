@@ -54,7 +54,7 @@ object Main {
     /**
       * total per specific day - result logs
       */
-    val totalBySpecificDayDS = nameByDayDS.limit(1000000).map(r => (r, 1))
+    val totalBySpecificDayDS = nameByDayDS.map(r => (r, 1))
       .groupByKey(_._1.dateWithNoTime)
       .reduceGroups((a,b) => (a._1, a._2 + b._2 ))
       .map(x => new TotalBySpecificDate(date = x._2._1.date, dayOfWeek = x._2._1.dayOfWeek,total = x._2._2))
@@ -90,12 +90,20 @@ object Main {
       )
       anomaliesDays.show(10)
 
-      // task 3 - max
+      // task 3 - max commits day
+
       /**
         * Find the user with max commits of
         */
       println("max commits day from anomalies days")
-      anomaliesDays.agg(max($"total")).show(2)
+      val maxCommitsDay = anomaliesDays.groupBy("date", "dayOfWeek").max("total").as("total")
+      maxCommitsDay.show(1)
+
+      nameByDayDS.join(maxCommitsDay, "date")
+      .groupBy("name")
+      .count.as("totalPerName")
+      .orderBy(org.apache.spark.sql.functions.col("totalPerName").desc)
+      .show(10)
     }
 
     /**
