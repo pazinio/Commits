@@ -1,0 +1,5 @@
+.idea
+project
+spark-warehouse
+target
+commits.csv
