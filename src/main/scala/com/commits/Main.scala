@@ -4,10 +4,9 @@ import org.apache.log4j._
 import org.apache.spark.sql.SparkSession
 import java.time.LocalDate
 
-
 case class NameByDate(date: java.sql.Date, name: String)
 case class NameByDay(date: java.sql.Date, dateWithNoTime: java.sql.Date, dayOfWeek: String, name:String)
-case class TotalByDay(day: String, total:Int)
+case class TotalBySpecificDate(date: java.sql.Date, dayOfWeek: String, total: Int)
 
 
 object Main {
@@ -37,7 +36,7 @@ object Main {
       .option("header", "true")
       .csv("commits.csv")
       .as[NameByDate]
-    nameByDateDS.show(20)
+    nameByDateDS.show(2)
 
     /**
       * adding day of week and date without time for future data set calculations
@@ -48,17 +47,68 @@ object Main {
         dayOfWeek = LocalDate.parse(r.date.toString).getDayOfWeek.toString,
         name = r.name
     ))
-    nameByDayDS.show(20)
+    nameByDayDS.show(2)
 
+    import org.apache.spark.sql.functions._
 
     /**
-      * total per day of week - result logs
+      * total per specific day - result logs
       */
-    val totalByDayDS = nameByDayDS.limit(1000).map(r => (r.dayOfWeek, 1))
-      .groupByKey(_._1)
+    val totalBySpecificDayDS = nameByDayDS.limit(1000000).map(r => (r, 1))
+      .groupByKey(_._1.dateWithNoTime)
       .reduceGroups((a,b) => (a._1, a._2 + b._2 ))
-      .map(x => new TotalByDay(day = x._2._1, total = x._2._2))
-    totalByDayDS.show()
+      .map(x => new TotalBySpecificDate(date = x._2._1.date, dayOfWeek = x._2._1.dayOfWeek,total = x._2._2))
+    totalBySpecificDayDS.show(10)
+
+    /**
+      * now aggregate by total and find mean and standard deviation
+      */
+    spark.time {
+      val averageByDay = totalBySpecificDayDS.groupBy($"dayOfWeek")
+        .agg(
+            avg($"total").as("avg"),
+            stddev($"total").as("standard deviation"),
+            sum($"total").as("total")
+          )
+          .orderBy(org.apache.spark.sql.functions.col("avg").desc)
+      averageByDay.show(7)
+
+      // task 2 - anomalous days
+
+      /**
+        * build map from day to (avg, deviation)
+        */
+      val resMap =
+        averageByDay.collect.map(r => r.get(0).toString -> (r.getDouble(1), r.getDouble(2))).toMap
+
+      /**
+        * Filter anomalies days
+        */
+      println("filter anomalies days")
+      val anomaliesDays = totalBySpecificDayDS.filter(
+        day => (day.total - resMap(day.dayOfWeek)._1) > 2.0 * resMap(day.dayOfWeek)._2
+      )
+      anomaliesDays.show(10)
+
+      // task 3 - max
+      /**
+        * Find the user with max commits of
+        */
+      println("max commits day from anomalies days")
+      anomaliesDays.agg(max($"total")).show(2)
+    }
+
+    /**
+      * return 95 percentile via spark sql
+      * https://stackoverflow.com/questions/41659695/sql-percentile-on-dataframe-with-float-numbers-spark-1-6-any-possible-workarou
+      */
+    spark.time {
+      totalBySpecificDayDS.createOrReplaceTempView("df")
+      val df = spark.sqlContext.sql(
+        "select dayOfWeek, percentile(total,0.95) as 95h from df group by dayOfWeek"
+      )
+      df.show(7)
+    }
 
     spark.stop()
   }
