@@ -94,7 +94,7 @@ object Main {
       maxCommitsDay.show(1)
 
       nameByDayDS.join(maxCommitsDay, "date")
-      .groupBy("name", "date", "dayOfWeek")
+      .groupBy("name", "date")
       .count
       .orderBy($"count".desc)
       .show(10)
