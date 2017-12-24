@@ -26,8 +26,7 @@ object Main {
       .getOrCreate()
 
     import spark.implicits._
-    val sample = spark.createDataset(1 to 1000).reduce(_ + _)
-    println(s"sample -> $sample")
+    import org.apache.spark.sql.functions._
 
     /**
       * reading commits authors names per date (two column based csv)
@@ -36,10 +35,9 @@ object Main {
       .option("header", "true")
       .csv("commits.csv")
       .as[NameByDate]
-    nameByDateDS.show(2)
 
     /**
-      * adding day of week and date without time for future data set calculations
+      * adding day of week and date without time for future data-set calculations
       */
     val nameByDayDS = nameByDateDS.map(r => new NameByDay(
         date = r.date,
@@ -47,12 +45,10 @@ object Main {
         dayOfWeek = LocalDate.parse(r.date.toString).getDayOfWeek.toString,
         name = r.name
     ))
-    nameByDayDS.show(2)
 
-    import org.apache.spark.sql.functions._
 
     /**
-      * total per specific day - result logs
+      * total per specific day (ignores HH:MM:SS)
       */
     val totalBySpecificDayDS = nameByDayDS.map(r => (r, 1))
       .groupByKey(_._1.dateWithNoTime)
@@ -67,8 +63,7 @@ object Main {
       val averageByDay = totalBySpecificDayDS.groupBy($"dayOfWeek")
         .agg(
             avg($"total").as("avg"),
-            stddev($"total").as("standard deviation"),
-            sum($"total").as("total")
+            stddev($"total").as("standard deviation")
           )
           .orderBy(org.apache.spark.sql.functions.col("avg").desc)
       averageByDay.show(7)
@@ -90,8 +85,7 @@ object Main {
       )
       anomaliesDays.show(10)
 
-      // task 3 - max commits day
-
+      // task 3
       /**
         * Find the user with max commits of
         */
@@ -100,9 +94,9 @@ object Main {
       maxCommitsDay.show(1)
 
       nameByDayDS.join(maxCommitsDay, "date")
-      .groupBy("name")
-      .count.as("totalPerName")
-      .orderBy(org.apache.spark.sql.functions.col("totalPerName").desc)
+      .groupBy("name", "date", "dayOfWeek")
+      .count
+      .orderBy($"count".desc)
       .show(10)
     }
 
