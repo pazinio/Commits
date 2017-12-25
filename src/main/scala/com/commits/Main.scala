@@ -25,6 +25,8 @@ object Main {
       .config("spark.master", "local[*]")
       .getOrCreate()
 
+    val path = org.apache.spark.SparkFiles.get("commits.csv")
+
     import spark.implicits._
     import org.apache.spark.sql.functions._
 
@@ -33,7 +35,7 @@ object Main {
       */
     val nameByDateDS = spark.read
       .option("header", "true")
-      .csv("commits.csv")
+      .csv(path)
       .as[NameByDate]
 
     /**
