@@ -4,9 +4,10 @@ import org.apache.log4j._
 import org.apache.spark.sql.SparkSession
 import java.time.LocalDate
 
-case class NameByDate(date: java.sql.Date, name: String)
-case class NameByDay(date: java.sql.Date, dateWithNoTime: java.sql.Date, dayOfWeek: String, name:String)
-case class TotalBySpecificDate(date: java.sql.Date, dayOfWeek: String, total: Int)
+
+case class NameByDate(date: String, name: String)
+case class NameByDay(date: String, dateWithNoTime: String, dayOfWeek: String, name:String)
+case class TotalBySpecificDate(dateWithNoTime: String, dayOfWeek: String, total: Int)
 
 
 object Main {
@@ -43,8 +44,8 @@ object Main {
       */
     val nameByDayDS = nameByDateDS.map(r => new NameByDay(
         date = r.date,
-        dateWithNoTime = ignoreTime(r.date),
-        dayOfWeek = LocalDate.parse(r.date.toString).getDayOfWeek.toString,
+        dateWithNoTime = r.date.split(" ")(0),
+        dayOfWeek = LocalDate.parse(r.date.split(" ")(0)).getDayOfWeek.toString,
         name = r.name
     ))
 
@@ -54,7 +55,7 @@ object Main {
     val totalBySpecificDayDS = nameByDayDS.map(r => (r, 1))
       .groupByKey(_._1.dateWithNoTime)
       .reduceGroups((a,b) => (a._1, a._2 + b._2 ))
-      .map(x => new TotalBySpecificDate(date = x._2._1.date, dayOfWeek = x._2._1.dayOfWeek,total = x._2._2))
+      .map(x => new TotalBySpecificDate(dateWithNoTime = x._2._1.dateWithNoTime, dayOfWeek = x._2._1.dayOfWeek,total = x._2._2))
 
     /**
       * now aggregate by total and find mean and standard deviation
@@ -90,7 +91,7 @@ object Main {
       maxCommitsDay.show(1)
 
     println("top 10 users in max commits day:")
-      nameByDayDS.join(maxCommitsDay, nameByDayDS.col("dateWithNoTime") === maxCommitsDay.col("date"))
+      nameByDayDS.join(maxCommitsDay, nameByDayDS.col("dateWithNoTime") === maxCommitsDay.col("dateWithNoTime"))
       .groupBy("name")
       .count
       .orderBy($"count".desc)
@@ -111,13 +112,6 @@ object Main {
     }
 
     spark.stop()
-  }
-
-  private def ignoreTime(date: java.sql.Date): java.sql.Date = {
-    val msSince1970 = date.getTime
-    val withNoTime = msSince1970 - (msSince1970 % (1000 * 60 * 60 * 24))
-    val res = new java.sql.Date(withNoTime)
-    res
   }
 }
 
