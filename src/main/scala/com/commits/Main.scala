@@ -67,23 +67,23 @@ object Main {
           )
           .orderBy($"avg".desc)
 
-      averageByDay.show(7)
+      averageByDay.show
 
       // task 2 - anomalous days
 
       /**
-        * Filter anomalies days
+        * Filter and print anomalies days
         */
       println("Anomalies days:")
       val anomaliesDays = totalBySpecificDayDS
         .join(averageByDay, "dayOfWeek")
         .where($"total" - ($"avg" + $"deviation") > $"deviation")
 
-      anomaliesDays.show()
+      anomaliesDays.show
 
       // task 3
       /**
-        * Find the user with max commits of
+        * Find the user with max commits of max day
         */
       println("Max commits day [from anomalies days]:")
       val maxCommitsDay = anomaliesDays.agg(max($"total").as("total")).join(anomaliesDays, "total")
@@ -101,12 +101,13 @@ object Main {
       * return 95 percentile via spark sql
       * https://stackoverflow.com/questions/41659695/sql-percentile-on-dataframe-with-float-numbers-spark-1-6-any-possible-workarou
       */
+    println("95 percentile:")
     spark.time {
       totalBySpecificDayDS.createOrReplaceTempView("df")
       val df = spark.sqlContext.sql(
         "select dayOfWeek, percentile(total,0.95) as 95th from df group by dayOfWeek"
       )
-      df.show(7)
+      df.show
     }
 
     spark.stop()
@@ -114,8 +115,10 @@ object Main {
 
   private def ignoreTime(date: java.sql.Date): java.sql.Date = {
     val msSince1970 = date.getTime
-    val withNoTime = msSince1970 - (msSince1970 % 1000 * 60 * 60 * 24)
-    new java.sql.Date(withNoTime)
+    val withNoTime = msSince1970 - (msSince1970 % (1000 * 60 * 60 * 24))
+    val res = new java.sql.Date(withNoTime)
+    res
+  }
   }
 }
 
