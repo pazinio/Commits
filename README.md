@@ -1,6 +1,10 @@
 # Commits
-spark public commits statistics
+spark public github repositories commits statistics
 
-1. git clone
+prerequisites:
+spark 2.0 and above.
+
+instructions:
+1. git clone [this repository]
 2. sbt clean pacakge
-3. spark-submit SBT_TARGET_WORKING_DIR/commits_2.11-0.1.jar
+3. spark-submit --files commits.csv sbt-fullpath-output.jar
