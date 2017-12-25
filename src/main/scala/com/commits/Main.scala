@@ -104,7 +104,7 @@ object Main {
     spark.time {
       totalBySpecificDayDS.createOrReplaceTempView("df")
       val df = spark.sqlContext.sql(
-        "select dayOfWeek, percentile(total,0.95) as 95h from df group by dayOfWeek"
+        "select dayOfWeek, percentile(total,0.95) as 95th from df group by dayOfWeek"
       )
       df.show(7)
     }
