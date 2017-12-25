@@ -119,6 +119,5 @@ object Main {
     val res = new java.sql.Date(withNoTime)
     res
   }
-  }
 }
 
