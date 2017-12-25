@@ -46,15 +46,13 @@ object Main {
         name = r.name
     ))
 
-
     /**
-      * total per specific day (ignores HH:MM:SS)
+      * total per specific day
       */
     val totalBySpecificDayDS = nameByDayDS.map(r => (r, 1))
       .groupByKey(_._1.dateWithNoTime)
       .reduceGroups((a,b) => (a._1, a._2 + b._2 ))
       .map(x => new TotalBySpecificDate(date = x._2._1.date, dayOfWeek = x._2._1.dayOfWeek,total = x._2._2))
-    totalBySpecificDayDS.show(10)
 
     /**
       * now aggregate by total and find mean and standard deviation
@@ -63,27 +61,23 @@ object Main {
       val averageByDay = totalBySpecificDayDS.groupBy($"dayOfWeek")
         .agg(
             avg($"total").as("avg"),
-            stddev($"total").as("standard deviation")
+            stddev($"total").as("deviation")
           )
-          .orderBy(org.apache.spark.sql.functions.col("avg").desc)
-      averageByDay.show(7)
+          .orderBy($"avg".desc)
+
+      if (debug) averageByDay.show(7)
 
       // task 2 - anomalous days
-
-      /**
-        * build map from day to (avg, deviation)
-        */
-      val resMap =
-        averageByDay.collect.map(r => r.get(0).toString -> (r.getDouble(1), r.getDouble(2))).toMap
 
       /**
         * Filter anomalies days
         */
       println("filter anomalies days")
-      val anomaliesDays = totalBySpecificDayDS.filter(
-        day => (day.total - resMap(day.dayOfWeek)._1) > 2.0 * resMap(day.dayOfWeek)._2
-      )
-      anomaliesDays.show(10)
+      val anomaliesDays = totalBySpecificDayDS
+        .join(averageByDay, "dayOfWeek")
+        .where($"total" - ($"avg" + $"deviation") > $"deviation")
+
+      anomaliesDays.show()
 
       // task 3
       /**
@@ -120,6 +114,8 @@ object Main {
     val withNoTime = msSince1970 - (msSince1970 % 1000 * 60 * 60 * 24)
     new java.sql.Date(withNoTime)
   }
+
+  private val debug = false
 
 }
 
