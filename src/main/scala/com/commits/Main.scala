@@ -72,7 +72,7 @@ object Main {
       /**
         * Filter anomalies days
         */
-      println("filter anomalies days")
+      println("Anomalies days:")
       val anomaliesDays = totalBySpecificDayDS
         .join(averageByDay, "dayOfWeek")
         .where($"total" - ($"avg" + $"deviation") > $"deviation")
@@ -83,12 +83,12 @@ object Main {
       /**
         * Find the user with max commits of
         */
-      println("max commits day from anomalies days")
-      val maxCommitsDay = anomaliesDays.groupBy("date", "dayOfWeek").max("total").as("total")
+      println("Max commits day [from anomalies days]:")
+      val maxCommitsDay = anomaliesDays.agg(max($"total")).join(anomaliesDays, "total")
       maxCommitsDay.show(1)
 
-      nameByDayDS.join(maxCommitsDay, "date")
-      .groupBy("name", "date")
+      nameByDayDS.join(maxCommitsDay, $"date")
+      .groupBy("name")
       .count
       .orderBy($"count".desc)
       .show(10)
