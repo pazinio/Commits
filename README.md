@@ -7,4 +7,4 @@ spark 2.0 and above.
 instructions:
 1. git clone [this repository]
 2. sbt clean pacakge
-3. spark-submit sbt-fullpath-output.jar
+3. spark-submit --files commits.csv sbt-fullpath-output.jar
