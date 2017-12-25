@@ -1,5 +1,6 @@
 # Commits
-Public github repositories commits statistics. (using spark scala)
+Public github repositories commits statistics and anomalous days detections. 
+(using Spark/Scala)
 
 ## Prerequisites:
 1. spark 2.2.0 and above.
@@ -14,6 +15,6 @@ Public github repositories commits statistics. (using spark scala)
 in spite of the fact that this assignment could be solved in more concise way,
 I chose the type-safe way with scala Dataset and case classes to demonstrate typesafe workspace.
 
-## commits.csv - 
+## commits.csv (input-file):
 in a real cluster environmet (standalone, Mesos or Yarn) in order to boost performance file(s) should be located under a distributed file system (HDFS/s3/etc)
 
