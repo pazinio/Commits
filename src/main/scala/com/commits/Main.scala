@@ -65,7 +65,7 @@ object Main {
           )
           .orderBy($"avg".desc)
 
-      if (debug) averageByDay.show(7)
+      averageByDay.show(7)
 
       // task 2 - anomalous days
 
@@ -84,10 +84,11 @@ object Main {
         * Find the user with max commits of
         */
       println("Max commits day [from anomalies days]:")
-      val maxCommitsDay = anomaliesDays.agg(max($"total")).join(anomaliesDays, "total")
+      val maxCommitsDay = anomaliesDays.agg(max($"total").as("total")).join(anomaliesDays, "total")
       maxCommitsDay.show(1)
 
-      nameByDayDS.join(maxCommitsDay, $"date")
+    println("top 10 users in max commits day:")
+      nameByDayDS.join(maxCommitsDay, nameByDayDS.col("dateWithNoTime") === maxCommitsDay.col("date"))
       .groupBy("name")
       .count
       .orderBy($"count".desc)
@@ -114,8 +115,5 @@ object Main {
     val withNoTime = msSince1970 - (msSince1970 % 1000 * 60 * 60 * 24)
     new java.sql.Date(withNoTime)
   }
-
-  private val debug = false
-
 }
 
